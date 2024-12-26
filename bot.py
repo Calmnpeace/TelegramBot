@@ -1,8 +1,8 @@
 from flask import Flask, request
 import telebot
+import os
 
-# Telegram Bot Token
-TOKEN = "7557973540:AAGHq6B0tcBSLA49aqaILmwmUTc-JAofMJI"  # Replace with your bot token
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")  # Load token from environment variables
 bot = telebot.TeleBot(TOKEN)
 
 # Flask app for handling webhooks
@@ -22,7 +22,7 @@ def handle_start(message):
 @app.route("/setwebhook", methods=["GET"])
 def set_webhook():
     # Replace YOUR_RENDER_URL with your actual Render service URL
-    webhook_url = f"https://telegrambot-osa9.onrender.com"
+    webhook_url = f"https://telegrambot-osa9.onrender.com/{TOKEN}"
     bot.remove_webhook()
     bot.set_webhook(url=webhook_url)
     return "Webhook set successfully!", 200
