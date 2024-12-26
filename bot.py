@@ -22,7 +22,7 @@ def handle_start(message):
 @app.route("/setwebhook", methods=["GET"])
 def set_webhook():
     # Replace YOUR_RENDER_URL with your actual Render service URL
-    webhook_url = f"https://YOUR_RENDER_URL/{TOKEN}"
+    webhook_url = f"https://telegrambot-osa9.onrender.com"
     bot.remove_webhook()
     bot.set_webhook(url=webhook_url)
     return "Webhook set successfully!", 200
