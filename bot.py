@@ -27,5 +27,9 @@ def set_webhook():
     bot.set_webhook(url=webhook_url)
     return "Webhook set successfully!", 200
 
+@app.route("/", methods=["GET"])
+def index():
+    return "Telegram Bot is running!", 200
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
