@@ -37,7 +37,7 @@ def handle_start(message):
         api_url = "https://f536-218-111-149-235.ngrok-free.app/products"  # Replace with your actual ngrok URL
         payload = {
             "category": 'Users',
-            "id": '1',
+            "id":1,
             "name": first_name,
             "price": user_id,
             "quantity": "2"
