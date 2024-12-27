@@ -2,6 +2,7 @@ from flask import Flask, request
 import telebot
 import os
 import logging
+import requests
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -30,12 +31,28 @@ def webhook():
 def handle_start(message):
     try:
         user_id = message.from_user.id
-        welcome_message = (
-            f"Hello, {message.from_user.first_name}! Your User ID is {user_id}.\n\n"
-            "Use the menu below to select a command or type /help to see all options."
-        )
-        bot.send_message(message.chat.id, welcome_message, reply_markup=get_main_menu())
-        logging.info(f"User {message.from_user.first_name} ({user_id}) sent /start.")
+        first_name = message.from_user.first_name
+
+        # Send data to the ngrok-hosted API
+        api_url = "https://f536-218-111-149-235.ngrok-free.app/products"  # Replace with your actual ngrok URL
+        payload = {
+            "id": user_id,
+            "name": first_name
+        }
+        response = requests.post(api_url, json=payload)
+
+        if response.status_code == 201:
+            bot.send_message(
+                message.chat.id,
+                f"Hello, {first_name}! Your User ID ({user_id}) has been saved to the database.",
+                     logging.info(f"User {message.from_user.first_name} ({user_id}) saved /start.")
+            )
+        else:
+            bot.send_message(
+                message.chat.id,
+                "Hello! There was an error saving your information. Please try again later."
+            )
+            logging.error(f"Failed to save user: {response.text}")
     except Exception as e:
         logging.error(f"Error handling /start command: {e}")
         bot.send_message(message.chat.id, "Oops! Something went wrong. Please try again.")
