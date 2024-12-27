@@ -46,7 +46,7 @@ def handle_start(message):
 
         # Send data to the API
         payload = {
-            "category": 'Users',
+            "category": "Users",
             "name": first_name,
             "price": 0,
             "quantity": user_id
@@ -79,7 +79,9 @@ def view_my_data(message):
         if response.status_code == 200:
             data = response.json()
             if data:
-                result = "\n".join([f"{d['id']}: {d['name']} - {d['category']} (${d['price']})" for d in data])
+                result = "\n".join(
+                    [f"{d['id']}: {d['name']} - {d['category']} (${d['price']})" for d in data]
+                )
                 bot.send_message(message.chat.id, f"Your Data:\n{result}", reply_markup=get_main_menu())
             else:
                 bot.send_message(message.chat.id, "You have no data.", reply_markup=get_main_menu())
@@ -91,13 +93,13 @@ def view_my_data(message):
 
 @bot.message_handler(func=lambda message: message.text == "Add New Data")
 def add_new_data(message):
-    bot.send_message(message.chat.id, "Provide data as: <name>,<category>,<price>")
-    @bot.message_handler(func=lambda m: True)
+    msg = bot.reply_to(message, "Provide data as: <name>,<category>,<price>")
+
     def save_new_data(m):
         try:
             user_id = m.from_user.id
             name, category, price = m.text.split(",")
-            payload = {"name": name, "category": category, "price": float(price), "quantity": user_id}
+            payload = {"name": name.strip(), "category": category.strip(), "price": float(price), "quantity": user_id}
             response = requests.post(API_URL, json=payload)
             if response.status_code == 201:
                 bot.send_message(m.chat.id, "Data added successfully.", reply_markup=get_main_menu())
@@ -107,10 +109,12 @@ def add_new_data(message):
             logging.error(f"Error adding data: {e}")
             bot.send_message(m.chat.id, "Invalid input. Please try again.", reply_markup=get_main_menu())
 
+    bot.register_next_step_handler(msg, save_new_data)
+
 @bot.message_handler(func=lambda message: message.text == "Update Data")
 def update_data(message):
-    bot.send_message(message.chat.id, "Provide data as: <id>,<name>,<category>,<price>")
-    @bot.message_handler(func=lambda m: True)
+    msg = bot.reply_to(message, "Provide data as: <id>,<name>,<category>,<price>")
+
     def save_updated_data(m):
         try:
             user_id = m.from_user.id
@@ -119,7 +123,7 @@ def update_data(message):
                 bot.send_message(m.chat.id, "Invalid input. Format: <id>,<name>,<category>,<price>", reply_markup=get_main_menu())
                 return
             data_id, name, category, price = data
-            payload = {"name": name, "category": category, "price": float(price), "quantity": user_id}
+            payload = {"name": name.strip(), "category": category.strip(), "price": float(price), "quantity": user_id}
             response = requests.put(f"{API_URL}/{data_id}", json=payload)
             if response.status_code == 200:
                 bot.send_message(m.chat.id, "Data updated successfully.", reply_markup=get_main_menu())
@@ -129,10 +133,12 @@ def update_data(message):
             logging.error(f"Error updating data: {e}")
             bot.send_message(m.chat.id, "Invalid input. Please try again.", reply_markup=get_main_menu())
 
+    bot.register_next_step_handler(msg, save_updated_data)
+
 @bot.message_handler(func=lambda message: message.text == "Delete Data")
 def delete_data(message):
-    bot.send_message(message.chat.id, "Provide the ID of the data to delete.")
-    @bot.message_handler(func=lambda m: True)
+    msg = bot.reply_to(message, "Provide the ID of the data to delete.")
+
     def confirm_delete(m):
         try:
             data_id = m.text
@@ -144,6 +150,8 @@ def delete_data(message):
         except Exception as e:
             logging.error(f"Error deleting data: {e}")
             bot.send_message(m.chat.id, "Invalid input. Please try again.", reply_markup=get_main_menu())
+
+    bot.register_next_step_handler(msg, confirm_delete)
 
 @app.route("/setwebhook", methods=["GET"])
 def set_webhook():
