@@ -40,36 +40,14 @@ def get_main_menu():
 # Command Handlers
 @bot.message_handler(commands=["start"])
 def handle_start(message):
-    try:
-        user_id = message.from_user.id
-        first_name = message.from_user.first_name
-
-        # Send data to the API
-        payload = {
-            "category": "Users",
-            "name": first_name,
-            "price": 10,
-            "quantity": user_id
-        }
-        response = requests.post(API_URL, json=payload)
-
-        if response.status_code == 201:
-            bot.send_message(
-                message.chat.id,
-                f"Hello, {first_name}! Your User ID ({user_id}) has been saved to the database. Use the menu below to manage your data.",
-                reply_markup=get_main_menu()
-            )
-            logging.info(f"User {first_name} ({user_id}) initialized with /start.")
-        else:
-            bot.send_message(
-                message.chat.id,
-                "Hello! There was an error saving your information. Please try again later.",
-                reply_markup=get_main_menu()
-            )
-            logging.error(f"Failed to save user: {response.text}")
-    except Exception as e:
-        logging.error(f"Error handling /start command: {e}")
-        bot.send_message(message.chat.id, "Oops! Something went wrong. Please try again.")
+    user_id = message.from_user.id
+    first_name = message.from_user.first_name
+    bot.send_message(
+        message.chat.id,
+        f"Hello, {first_name}! Welcome to the Muscle Database Management System. Kindly use the menu below to manage your data.",
+        reply_markup=get_main_menu()
+    )
+    logging.info(f"User {first_name} ({user_id}) initialized with /start.")
 
 @bot.message_handler(func=lambda message: message.text == "View My Data")
 def view_my_data(message):
@@ -214,6 +192,15 @@ def handle_info(message):
         "Created by [Your Name]. For queries or issues, contact: [Your Contact Info]."
     )
     bot.send_message(message.chat.id, info_text, parse_mode="Markdown", reply_markup=get_main_menu())
+
+@bot.message_handler(func=lambda message: True)  # Catches any unrecognized command or input
+def handle_unknown_command(message):
+    bot.send_message(
+        message.chat.id,
+        "🚫 Sorry, I didn't understand that command.\n"
+        "Type /help to see the list of available commands or use the menu options below.",
+        reply_markup=get_main_menu()
+    )
 
 @app.route("/setwebhook", methods=["GET"])
 def set_webhook():
