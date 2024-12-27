@@ -37,9 +37,9 @@ def handle_start(message):
         api_url = "https://f536-218-111-149-235.ngrok-free.app/products"  # Replace with your actual ngrok URL
         payload = {
             "category": 'Users',
-            "id": user_id,
+            "id": '',
             "name": first_name,
-            "price": "2",
+            "price": user_id,
             "quantity": "2"
         }
         response = requests.post(api_url, json=payload)
