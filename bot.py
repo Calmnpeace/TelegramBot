@@ -34,7 +34,7 @@ def get_main_menu():
     keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.row("View My Data", "Add New Data")
     keyboard.row("Update Data", "Delete Data")
-    keyboard.row("/help", "/info")
+    keyboard.row("Get Product by ID", "/help", "/info")
     return keyboard
 
 # Command Handlers
@@ -90,6 +90,34 @@ def view_my_data(message):
     except Exception as e:
         logging.error(f"Error viewing data: {e}")
         bot.send_message(message.chat.id, "Oops! Something went wrong. Please try again.", reply_markup=get_main_menu())
+
+@bot.message_handler(func=lambda message: message.text == "Get Product by ID")
+def get_product_by_id(message):
+    msg = bot.reply_to(message, "Please provide the Product ID:")
+
+    def fetch_product(m):
+        try:
+            product_id = m.text.strip()
+            response = requests.get(f"{API_URL}/{product_id}")
+            if response.status_code == 200:
+                product = response.json()
+                product_details = (
+                    f"Product Details:\n"
+                    f"ID: {product['id']}\n"
+                    f"Name: {product['name']}\n"
+                    f"Category: {product['category']}\n"
+                    f"Price: ${product['price']}\n"
+                )
+                bot.send_message(m.chat.id, product_details, reply_markup=get_main_menu())
+            elif response.status_code == 404:
+                bot.send_message(m.chat.id, f"No product found with ID {product_id}.", reply_markup=get_main_menu())
+            else:
+                bot.send_message(m.chat.id, "Failed to fetch the product. Please try again later.", reply_markup=get_main_menu())
+        except Exception as e:
+            logging.error(f"Error fetching product by ID: {e}")
+            bot.send_message(m.chat.id, "Invalid input or an error occurred. Please try again.", reply_markup=get_main_menu())
+
+    bot.register_next_step_handler(msg, fetch_product)
 
 @bot.message_handler(func=lambda message: message.text == "Add New Data")
 def add_new_data(message):
