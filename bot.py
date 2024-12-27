@@ -16,6 +16,9 @@ bot = telebot.TeleBot(TOKEN)
 # Flask app for handling webhooks
 app = Flask(__name__)
 
+# API URL (replace with your actual ngrok URL or hosted API URL)
+API_URL = "https://f536-218-111-149-235.ngrok-free.app/products"
+
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
     try:
@@ -26,6 +29,14 @@ def webhook():
         logging.error(f"Error processing webhook: {e}")
         return "Internal Server Error", 500
 
+# Helper Function: Persistent Menu
+def get_main_menu():
+    keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard.row("View My Data", "Add New Data")
+    keyboard.row("Update Data", "Delete Data")
+    keyboard.row("/help", "/info")
+    return keyboard
+
 # Command Handlers
 @bot.message_handler(commands=["start"])
 def handle_start(message):
@@ -33,84 +44,111 @@ def handle_start(message):
         user_id = message.from_user.id
         first_name = message.from_user.first_name
 
-        # Send data to the ngrok-hosted API
-        api_url = "https://f536-218-111-149-235.ngrok-free.app/products"  # Replace with your actual ngrok URL
+        # Send data to the API
         payload = {
             "category": 'Users',
             "name": first_name,
-            "price": 123,
+            "price": 0,
             "quantity": user_id
         }
-        response = requests.post(api_url, json=payload)
+        response = requests.post(API_URL, json=payload)
 
         if response.status_code == 201:
             bot.send_message(
                 message.chat.id,
-                f"Hello, {first_name}! Your User ID ({user_id}) has been saved to the database.",
-                     logging.info(f"User {message.from_user.first_name} ({user_id}) saved /start.")
+                f"Hello, {first_name}! Your User ID ({user_id}) has been saved to the database. Use the menu below to manage your data.",
+                reply_markup=get_main_menu()
             )
+            logging.info(f"User {first_name} ({user_id}) initialized with /start.")
         else:
             bot.send_message(
                 message.chat.id,
-                "Hello! There was an error saving your information. Please try again later."
+                "Hello! There was an error saving your information. Please try again later.",
+                reply_markup=get_main_menu()
             )
             logging.error(f"Failed to save user: {response.text}")
     except Exception as e:
         logging.error(f"Error handling /start command: {e}")
         bot.send_message(message.chat.id, "Oops! Something went wrong. Please try again.")
 
-@bot.message_handler(commands=["help"])
-def handle_help(message):
+@bot.message_handler(func=lambda message: message.text == "View My Data")
+def view_my_data(message):
     try:
-        help_text = (
-            "Here are the commands you can use:\n"
-            "/start - Start the bot and get your User ID\n"
-            "/help - Get the list of available commands\n"
-            "/info - Get information about this bot\n"
-        )
-        bot.send_message(message.chat.id, help_text, reply_markup=get_main_menu())
-        logging.info(f"User {message.from_user.id} requested /help.")
+        user_id = message.from_user.id
+        response = requests.get(f"{API_URL}?user_id={user_id}")
+        if response.status_code == 200:
+            data = response.json()
+            if data:
+                result = "\n".join([f"{d['id']}: {d['name']} - {d['category']} (${d['price']})" for d in data])
+                bot.send_message(message.chat.id, f"Your Data:\n{result}", reply_markup=get_main_menu())
+            else:
+                bot.send_message(message.chat.id, "You have no data.", reply_markup=get_main_menu())
+        else:
+            bot.send_message(message.chat.id, "Failed to fetch your data.", reply_markup=get_main_menu())
     except Exception as e:
-        logging.error(f"Error handling /help command: {e}")
-        bot.send_message(message.chat.id, "Oops! Something went wrong. Please try again.")
+        logging.error(f"Error viewing data: {e}")
+        bot.send_message(message.chat.id, "Oops! Something went wrong. Please try again.", reply_markup=get_main_menu())
 
-@bot.message_handler(commands=["info"])
-def handle_info(message):
-    try:
-        info_text = (
-            "This is a sample Telegram bot created for demonstration purposes.\n"
-            "Feel free to explore the commands or reach out for support!"
-        )
-        bot.send_message(message.chat.id, info_text, reply_markup=get_main_menu())
-        logging.info(f"User {message.from_user.id} requested /info.")
-    except Exception as e:
-        logging.error(f"Error handling /info command: {e}")
-        bot.send_message(message.chat.id, "Oops! Something went wrong. Please try again.")
+@bot.message_handler(func=lambda message: message.text == "Add New Data")
+def add_new_data(message):
+    bot.send_message(message.chat.id, "Provide data as: <name>,<category>,<price>")
+    @bot.message_handler(func=lambda m: True)
+    def save_new_data(m):
+        try:
+            user_id = m.from_user.id
+            name, category, price = m.text.split(",")
+            payload = {"name": name, "category": category, "price": float(price), "quantity": user_id}
+            response = requests.post(API_URL, json=payload)
+            if response.status_code == 201:
+                bot.send_message(m.chat.id, "Data added successfully.", reply_markup=get_main_menu())
+            else:
+                bot.send_message(m.chat.id, "Failed to add data.", reply_markup=get_main_menu())
+        except Exception as e:
+            logging.error(f"Error adding data: {e}")
+            bot.send_message(m.chat.id, "Invalid input. Please try again.", reply_markup=get_main_menu())
 
-# Default Handler for Unknown Messages
-@bot.message_handler(func=lambda message: True)
-def handle_unknown(message):
-    try:
-        bot.send_message(
-            message.chat.id,
-            "I didn't understand that. Please use the menu below or type /help for assistance.",
-            reply_markup=get_main_menu(),
-        )
-        logging.info(f"User {message.from_user.id} sent an unknown message: {message.text}")
-    except Exception as e:
-        logging.error(f"Error handling unknown message: {e}")
-        bot.send_message(message.chat.id, "Oops! Something went wrong. Please try again.")
+@bot.message_handler(func=lambda message: message.text == "Update Data")
+def update_data(message):
+    bot.send_message(message.chat.id, "Provide data as: <id>,<name>,<category>,<price>")
+    @bot.message_handler(func=lambda m: True)
+    def save_updated_data(m):
+        try:
+            user_id = m.from_user.id
+            data = m.text.split(",")
+            if len(data) != 4:
+                bot.send_message(m.chat.id, "Invalid input. Format: <id>,<name>,<category>,<price>", reply_markup=get_main_menu())
+                return
+            data_id, name, category, price = data
+            payload = {"name": name, "category": category, "price": float(price), "quantity": user_id}
+            response = requests.put(f"{API_URL}/{data_id}", json=payload)
+            if response.status_code == 200:
+                bot.send_message(m.chat.id, "Data updated successfully.", reply_markup=get_main_menu())
+            else:
+                bot.send_message(m.chat.id, "Failed to update data.", reply_markup=get_main_menu())
+        except Exception as e:
+            logging.error(f"Error updating data: {e}")
+            bot.send_message(m.chat.id, "Invalid input. Please try again.", reply_markup=get_main_menu())
 
-# Helper Function: Main Menu
-def get_main_menu():
-    keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
-    keyboard.row("/start", "/help", "/info")
-    return keyboard
+@bot.message_handler(func=lambda message: message.text == "Delete Data")
+def delete_data(message):
+    bot.send_message(message.chat.id, "Provide the ID of the data to delete.")
+    @bot.message_handler(func=lambda m: True)
+    def confirm_delete(m):
+        try:
+            data_id = m.text
+            response = requests.delete(f"{API_URL}/{data_id}")
+            if response.status_code == 200:
+                bot.send_message(m.chat.id, "Data deleted successfully.", reply_markup=get_main_menu())
+            else:
+                bot.send_message(m.chat.id, "Failed to delete data. Ensure the ID is correct.", reply_markup=get_main_menu())
+        except Exception as e:
+            logging.error(f"Error deleting data: {e}")
+            bot.send_message(m.chat.id, "Invalid input. Please try again.", reply_markup=get_main_menu())
 
 @app.route("/setwebhook", methods=["GET"])
 def set_webhook():
     try:
-        webhook_url = f"https://telegrambot-osa9.onrender.com/{TOKEN}"
+        webhook_url = f"https://telegrambot-osa9.onrender.com/{TOKEN}"  # Replace with your hosted domain
         bot.remove_webhook()
         bot.set_webhook(url=webhook_url)
         logging.info(f"Webhook set to {webhook_url}")
