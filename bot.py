@@ -218,9 +218,10 @@ def handle_info(message):
 
 @bot.message_handler(func=lambda message: True)  # Catches any unrecognized command or input
 def handle_unknown_command(message):
+    chat_id = message.chat.id
     bot.send_message(
         message.chat.id,
-        "🚫 Sorry, I didn't understand that command.\n"
+        f"{chat_id}, 🚫 Sorry, I didn't understand that command.\n"
         "Type /help to see the list of available commands or use the menu options below.",
         reply_markup=get_main_menu()
     )
