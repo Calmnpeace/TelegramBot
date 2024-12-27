@@ -193,7 +193,7 @@ def handle_help(message):
         "2. **Add New Data** - Add new data to your account.\n"
         "3. **Update Data** - Update an existing data entry.\n"
         "4. **Delete Data** - Delete an existing data entry.\n"
-        "5. **Get Product by ID** - Fetch a single product by its ID.\n\n"
+        "5. **Get Product by ID** - Fetch a single product by its ID.\n"
         "6. **View My Products** - View all the data stored by you.\n\n"
         "💡 **Usage Tips**:\n"
         "- Use the provided menu for easy navigation.\n"
