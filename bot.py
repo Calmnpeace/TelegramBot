@@ -48,7 +48,7 @@ def handle_start(message):
         payload = {
             "category": "Users",
             "name": first_name,
-            "price": 0,
+            "price": 10,
             "quantity": user_id
         }
         response = requests.post(API_URL, json=payload)
@@ -152,6 +152,40 @@ def delete_data(message):
             bot.send_message(m.chat.id, "Invalid input. Please try again.", reply_markup=get_main_menu())
 
     bot.register_next_step_handler(msg, confirm_delete)
+
+@bot.message_handler(commands=["help"])
+def handle_help(message):
+    help_text = (
+        "🛠️ **Bot Commands**:\n"
+        "/start - Initialize your account.\n"
+        "/help - Show this help message.\n"
+        "/info - Get information about this bot.\n\n"
+        "🎛️ **Menu Options**:\n"
+        "1. **View My Data** - View all your stored data.\n"
+        "2. **Add New Data** - Add new data to your account.\n"
+        "3. **Update Data** - Update an existing data entry.\n"
+        "4. **Delete Data** - Delete an existing data entry.\n"
+        "5. **Get Product by ID** - Fetch a single product by its ID.\n\n"
+        "💡 **Usage Tips**:\n"
+        "- Use the provided menu for easy navigation.\n"
+        "- Ensure all inputs are in the correct format (e.g., `<name>,<category>,<price>`)."
+    )
+    bot.send_message(message.chat.id, help_text, parse_mode="Markdown", reply_markup=get_main_menu())
+
+@bot.message_handler(commands=["info"])
+def handle_info(message):
+    info_text = (
+        "🤖 **Bot Information**:\n"
+        "This bot is designed to help you manage your data efficiently via an interactive Telegram interface. "
+        "It allows you to view, add, update, and delete data securely.\n\n"
+        "📡 **Powered By**:\n"
+        "- Flask Web Framework\n"
+        "- Telebot Library for Telegram Integration\n"
+        "- A Backend API for Data Management\n\n"
+        "🔗 **Developer**:\n"
+        "Created by [Your Name]. For queries or issues, contact: [Your Contact Info]."
+    )
+    bot.send_message(message.chat.id, info_text, parse_mode="Markdown", reply_markup=get_main_menu())
 
 @app.route("/setwebhook", methods=["GET"])
 def set_webhook():
