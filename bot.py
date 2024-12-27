@@ -38,8 +38,8 @@ def handle_start(message):
         payload = {
             "category": 'Users',
             "name": first_name,
-            "price": user_id,
-            "quantity": "2"
+            "price": 123,
+            "quantity": user_id
         }
         response = requests.post(api_url, json=payload)
 
