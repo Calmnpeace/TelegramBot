@@ -32,9 +32,10 @@ def webhook():
 # Helper Function: Persistent Menu
 def get_main_menu():
     keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
-    keyboard.row("View My Data", "Add New Data")
+    keyboard.row("View All Products", "Add New Data")
     keyboard.row("Update Data", "Delete Data")
-    keyboard.row("Get Product by ID", "/help", "/info")
+    keyboard.row("Get Product by ID", "View My Products")
+    keyboard.row("/help", "/info")
     return keyboard
 
 # Command Handlers
@@ -49,7 +50,7 @@ def handle_start(message):
     )
     logging.info(f"User {first_name} ({user_id}) initialized with /start.")
 
-@bot.message_handler(func=lambda message: message.text == "View My Data")
+@bot.message_handler(func=lambda message: message.text == "View All Products")
 def view_my_data(message):
     try:
         user_id = message.from_user.id
@@ -158,6 +159,27 @@ def delete_data(message):
             bot.send_message(m.chat.id, "Invalid input. Please try again.", reply_markup=get_main_menu())
 
     bot.register_next_step_handler(msg, confirm_delete)
+
+@bot.message_handler(func=lambda message: message.text == "View My Products")
+def view_my_products(message):
+    try:
+        user_id = message.from_user.id  # Retrieve the user's Telegram user_id
+        response = requests.get(f"{API_URL}/by-quantity/{user_id}")  # Use the user_id as quantity in the API request
+
+        if response.status_code == 200:
+            # If products are found, display them
+            products = response.json()
+            if products:
+                result = "\n".join([f"ID: {p['id']} | Name: {p['name']} | Category: {p['category']} | Price: ${p['price']}" for p in products])
+                bot.send_message(message.chat.id, f"Your Products:\n{result}", reply_markup=get_main_menu())
+            else:
+                bot.send_message(message.chat.id, "You have no products.", reply_markup=get_main_menu())
+        else:
+            # Handle errors (e.g., no products found)
+            bot.send_message(message.chat.id, "Failed to fetch your products. Please try again later.", reply_markup=get_main_menu())
+    except Exception as e:
+        logging.error(f"Error retrieving products for user {message.from_user.id}: {e}")
+        bot.send_message(message.chat.id, "Oops! Something went wrong. Please try again.", reply_markup=get_main_menu())
 
 @bot.message_handler(commands=["help"])
 def handle_help(message):
