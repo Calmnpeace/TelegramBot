@@ -29,13 +29,21 @@ def webhook():
         logging.error(f"Error processing webhook: {e}")
         return "Internal Server Error", 500
 
-# Helper Function: Persistent Menu
+# Helper Function: Persistent Menu (Inline Keyboard)
 def get_main_menu():
-    keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
-    keyboard.row("View All Products", "Add New Data")
-    keyboard.row("Update Data", "Delete Data")
-    keyboard.row("Get Product by ID", "View My Products")
-    keyboard.row("/help", "/info")
+    keyboard = telebot.types.InlineKeyboardMarkup()
+    keyboard.add(
+        telebot.types.InlineKeyboardButton("View All Products", callback_data="view_all_products"),
+        telebot.types.InlineKeyboardButton("Add New Data", callback_data="add_new_data")
+    )
+    keyboard.add(
+        telebot.types.InlineKeyboardButton("Update Data", callback_data="update_data"),
+        telebot.types.InlineKeyboardButton("Delete Data", callback_data="delete_data")
+    )
+    keyboard.add(
+        telebot.types.InlineKeyboardButton("Get Product by ID", callback_data="get_product_by_id"),
+        telebot.types.InlineKeyboardButton("View My Products", callback_data="view_my_products")
+    )
     return keyboard
 
 # Command Handlers
