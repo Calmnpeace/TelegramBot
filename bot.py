@@ -53,7 +53,7 @@ def handle_start(message):
     first_name = message.from_user.first_name
     bot.send_message(
         message.chat.id,
-        f"Hello, {first_name}! Welcome to the Muscle Database Management System. Kindly use the menu below to manage your data.",
+        f"Hello, {first_name}! Welcome to the Mother Database Management System. Kindly use the menu below to manage your data.",
         reply_markup=get_main_menu()
     )
     logging.info(f"User {first_name} ({user_id}) initialized with /start.")
@@ -236,7 +236,7 @@ def handle_unknown_command(message):
 @app.route("/setwebhook", methods=["GET"])
 def set_webhook():
     try:
-        webhook_url = f"https://telegrambot-osa9.onrender.com/{TOKEN}"  # Replace with your hosted domain
+        webhook_url = f"https://telegrambot-ckm4.onrender.com/{TOKEN}"  # Replace with your hosted domain
         bot.remove_webhook()
         bot.set_webhook(url=webhook_url)
         logging.info(f"Webhook set to {webhook_url}")
