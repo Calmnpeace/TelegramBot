@@ -47,6 +47,10 @@ def get_main_menu():
         telebot.types.InlineKeyboardButton("Get Product by ID", callback_data="get_product_by_id"),
         telebot.types.InlineKeyboardButton("View My Products", callback_data="view_my_products")
     )
+    keyboard.add(
+        telebot.types.InlineKeyboardButton("Help", callback_data="help"),
+        telebot.types.InlineKeyboardButton("Info", callback_data="info")
+    )
     return keyboard
 
 # Command Handlers
