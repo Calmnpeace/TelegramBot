@@ -21,8 +21,10 @@ API_URL = "https://6c66-218-111-149-235.ngrok-free.app/products"
 
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
+    logging.info("Webhook endpoint hit")
     try:
         json_data = request.get_json()
+        logging.info(f"Received update: {json_data}")
         bot.process_new_updates([telebot.types.Update.de_json(json_data)])
         return "OK", 200
     except Exception as e:
@@ -247,8 +249,10 @@ def set_webhook():
 
 @app.route("/", methods=["GET"])
 def index():
+    logging.info("Root endpoint hit - bot is running")
     return "Telegram Bot is running!", 200
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
+    logging.info(f"Starting Flask app on port {port}")
     app.run(host="0.0.0.0", port=port)
