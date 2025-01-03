@@ -33,6 +33,7 @@ def webhook():
 
 # Helper Function: Persistent Menu (Inline Keyboard)
 def get_main_menu():
+    logging.info("Generating main menu keyboard")
     keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.row("View All Products", "Add New Data")
     keyboard.row("Update Data", "Delete Data")
@@ -43,6 +44,7 @@ def get_main_menu():
 # Command Handlers
 @bot.message_handler(commands=["start"])
 def handle_start(message):
+    logging.info(f"Handling /start command from user {message.from_user.id}")
     user_id = message.from_user.id
     first_name = message.from_user.first_name
     bot.send_message(
