@@ -53,6 +53,41 @@ def get_main_menu():
     )
     return keyboard
 
+@bot.callback_query_handler(func=lambda call: True)
+def handle_callback_query(call):
+    try:
+        if call.data == "view_all_products":
+            logging.info(f"User {call.from_user.id} selected 'View All Products'")
+            view_my_data(call.message)
+        elif call.data == "add_new_data":
+            logging.info(f"User {call.from_user.id} selected 'Add New Data'")
+            add_new_data(call.message)
+        elif call.data == "update_data":
+            logging.info(f"User {call.from_user.id} selected 'Update Data'")
+            update_data(call.message)
+        elif call.data == "delete_data":
+            logging.info(f"User {call.from_user.id} selected 'Delete Data'")
+            delete_data(call.message)
+        elif call.data == "get_product_by_id":
+            logging.info(f"User {call.from_user.id} selected 'Get Product by ID'")
+            get_product_by_id(call.message)
+        elif call.data == "view_my_products":
+            logging.info(f"User {call.from_user.id} selected 'View My Products'")
+            view_my_products(call.message)
+        elif call.data == "help":
+            logging.info(f"User {call.from_user.id} selected 'Help'")
+            handle_help(call.message)
+        elif call.data == "info":
+            logging.info(f"User {call.from_user.id} selected 'Info'")
+            handle_info(call.message)
+        else:
+            logging.warning(f"Unrecognized callback data: {call.data}")
+            bot.send_message(call.message.chat.id, "❓ Unrecognized option. Please try again.", reply_markup=get_main_menu())
+    except Exception as e:
+        logging.error(f"Error handling callback query: {e}")
+        bot.send_message(call.message.chat.id, "⚠️ An error occurred. Please try again later.", reply_markup=get_main_menu())
+
+
 # Command Handlers
 @bot.message_handler(commands=["start"])
 def handle_start(message):
