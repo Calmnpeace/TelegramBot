@@ -121,7 +121,7 @@ def assign_role_via_api(username, chat_id, new_role):
 def process_role_selection(message):
     role = message.text.strip()
     chat_id = message.from_user.id
-    username = message.from_user.firstname
+    username = message.from_user.username
     logging.info(f"User {chat_id} selected role: {role}")
 
     # Assign the role via the API
@@ -141,6 +141,7 @@ def process_role_selection(message):
 
 # Verify user credentials before assigning admin or moderator roles
 def verify_credentials(message, role):
+    username = message.from_user.username
     user_input = message.text.strip()
     chat_id = message.from_user.id
     logging.info(f"Verifying credentials for user {chat_id} as {role}")
@@ -149,7 +150,7 @@ def verify_credentials(message, role):
     if (role.lower() == "admin" and user_input == "admin_passcode") or \
             (role.lower() == "moderator" and user_input == "moderator_passcode"):
         # Assign role using the API
-        success = assign_role_via_api(chat_id, chat_id, role)
+        success = assign_role_via_api(username, chat_id, role)
         if success:
             bot.send_message(
                 message.chat.id,
