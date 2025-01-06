@@ -98,12 +98,12 @@ def handle_start(message):
 
 
 # Function to call the ngrok API to assign a role
-def assign_role_via_api(chat_id, target_chat_id, new_role):
-    url = f"{API_URL}/users/assign_role"
+def assign_role_via_api(username, chat_id, new_role):
+    url = f"{API_URL}/users/add_user"
     payload = {
+        "username" : username,
         "chat_id": chat_id,  # Admin user who is assigning the role
         "role": new_role,  # The new role to be assigned
-        "target_chat_id": target_chat_id  # The user whose role is being updated
     }
 
     try:
@@ -121,11 +121,12 @@ def assign_role_via_api(chat_id, target_chat_id, new_role):
 def process_role_selection(message):
     role = message.text.strip()
     chat_id = message.from_user.id
+    username = message.from_user.firstname
     logging.info(f"User {chat_id} selected role: {role}")
 
     # Assign the role via the API
     if role.lower() == "user":
-        success = assign_role_via_api(chat_id, chat_id, role)  # Self-assign as "User"
+        success = assign_role_via_api(username, chat_id, role)  # Self-assign as "User"
         if success:
             bot.send_message(
                 message.chat.id,
