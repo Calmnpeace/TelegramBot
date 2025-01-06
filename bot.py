@@ -17,7 +17,7 @@ bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__)
 
 # API URL (replace with your actual ngrok URL or hosted API URL)
-API_URL = "https://6c66-218-111-149-235.ngrok-free.app/products"
+API_URL = "https://b2ca-218-111-149-235.ngrok-free.app"
 
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
@@ -53,184 +53,71 @@ def get_main_menu():
     )
     return keyboard
 
-@bot.callback_query_handler(func=lambda call: True)
-def handle_callback_query(call):
-    try:
-        if call.data == "view_all_products":
-            logging.info(f"User {call.from_user.id} selected 'View All Products'")
-            view_my_data(call.message)
-        elif call.data == "add_new_data":
-            logging.info(f"User {call.from_user.id} selected 'Add New Data'")
-            add_new_data(call.message)
-        elif call.data == "update_data":
-            logging.info(f"User {call.from_user.id} selected 'Update Data'")
-            update_data(call.message)
-        elif call.data == "delete_data":
-            logging.info(f"User {call.from_user.id} selected 'Delete Data'")
-            delete_data(call.message)
-        elif call.data == "get_product_by_id":
-            logging.info(f"User {call.from_user.id} selected 'Get Product by ID'")
-            get_product_by_id(call.message)
-        elif call.data == "view_my_products":
-            logging.info(f"User {call.from_user.id} selected 'View My Products'")
-            view_my_products(call.message)
-        elif call.data == "help":
-            logging.info(f"User {call.from_user.id} selected 'Help'")
-            handle_help(call.message)
-        elif call.data == "info":
-            logging.info(f"User {call.from_user.id} selected 'Info'")
-            handle_info(call.message)
-        else:
-            logging.warning(f"Unrecognized callback data: {call.data}")
-            bot.send_message(call.message.chat.id, "❓ Unrecognized option. Please try again.", reply_markup=get_main_menu())
-    except Exception as e:
-        logging.error(f"Error handling callback query: {e}")
-        bot.send_message(call.message.chat.id, "⚠️ An error occurred. Please try again later.", reply_markup=get_main_menu())
-
-
-# Command Handlers
 @bot.message_handler(commands=["start"])
 def handle_start(message):
     logging.info(f"Handling /start command from user {message.from_user.id}")
     user_id = message.from_user.id
     first_name = message.from_user.first_name
-    bot.send_message(
+
+    # Prompt user to select a role
+    markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+    markup.add("User", "Admin", "Moderator")
+    msg = bot.send_message(
         message.chat.id,
-        f"Hello, {first_name}! Welcome to the Mother Database Management System. Kindly use the menu below to manage your data.",
-        reply_markup=get_main_menu()
+        f"Hello, {first_name}! Welcome to the Mother Database Management System.\n"
+        "Please select your role to proceed:",
+        reply_markup=markup
     )
-    logging.info(f"User {first_name} ({user_id}) initialized with /start.")
+    bot.register_next_step_handler(msg, process_role_selection)
 
-@bot.message_handler(func=lambda message: message.text == "View All Products")
-def view_my_data(message):
-    try:
-        user_id = message.from_user.id
-        response = requests.get(f"{API_URL}?user_id={user_id}")
-        if response.status_code == 200:
-            data = response.json()
-            if data:
-                result = "\n".join(
-                    [f"{d['id']}: {d['name']} - {d['category']} (${d['price']})" for d in data]
-                )
-                bot.send_message(message.chat.id, f"Your Data:\n{result}", reply_markup=get_main_menu())
-            else:
-                bot.send_message(message.chat.id, "You have no data.", reply_markup=get_main_menu())
-        else:
-            bot.send_message(message.chat.id, "Failed to fetch your data.", reply_markup=get_main_menu())
-    except Exception as e:
-        logging.error(f"Error viewing data: {e}")
-        bot.send_message(message.chat.id, "Oops! Something went wrong. Please try again.", reply_markup=get_main_menu())
+def process_role_selection(message):
+    role = message.text.strip()
+    user_id = message.from_user.id
+    logging.info(f"User {user_id} selected role: {role}")
 
-@bot.message_handler(func=lambda message: message.text == "Get Product by ID")
-def get_product_by_id(message):
-    msg = bot.reply_to(message, "Please provide the Product ID:")
+    if role.lower() == "user":
+        assign_role(user_id, role)
+        bot.send_message(
+            message.chat.id,
+            "You have been assigned the 'User' role. Use the menu below to manage your data.",
+            reply_markup=get_main_menu()
+        )
+    else:
+        # Prompt for additional credentials
+        msg = bot.reply_to(message, f"As a {role}, please provide your credentials (e.g., admin passcode):")
+        bot.register_next_step_handler(msg, verify_credentials, role)
 
-    def fetch_product(m):
-        try:
-            product_id = m.text.strip()
-            response = requests.get(f"{API_URL}/{product_id}")
-            if response.status_code == 200:
-                product = response.json()
-                product_details = (
-                    f"Product Details:\n"
-                    f"ID: {product['id']}\n"
-                    f"Name: {product['name']}\n"
-                    f"Category: {product['category']}\n"
-                    f"Price: ${product['price']}\n"
-                )
-                bot.send_message(m.chat.id, product_details, reply_markup=get_main_menu())
-            elif response.status_code == 404:
-                bot.send_message(m.chat.id, f"No product found with ID {product_id}.", reply_markup=get_main_menu())
-            else:
-                bot.send_message(m.chat.id, "Failed to fetch the product. Please try again later.", reply_markup=get_main_menu())
-        except Exception as e:
-            logging.error(f"Error fetching product by ID: {e}")
-            bot.send_message(m.chat.id, "Invalid input or an error occurred. Please try again.", reply_markup=get_main_menu())
+def verify_credentials(message, role):
+    user_input = message.text.strip()
+    user_id = message.from_user.id
+    logging.info(f"Verifying credentials for user {user_id} for role {role}")
 
-    bot.register_next_step_handler(msg, fetch_product)
+    # Example verification logic (replace with actual verification)
+    if role.lower() == "admin" and user_input == "admin_passcode":
+        assign_role(user_id, role)
+        bot.send_message(
+            message.chat.id,
+            f"Your credentials are verified. You have been assigned the '{role}' role.",
+            reply_markup=get_main_menu()
+        )
+    elif role.lower() == "moderator" and user_input == "moderator_passcode":
+        assign_role(user_id, role)
+        bot.send_message(
+            message.chat.id,
+            f"Your credentials are verified. You have been assigned the '{role}' role.",
+            reply_markup=get_main_menu()
+        )
+    else:
+        bot.send_message(
+            message.chat.id,
+            "Invalid credentials. Please try again.",
+            reply_markup=get_main_menu()
+        )
 
-@bot.message_handler(func=lambda message: message.text == "Add New Data")
-def add_new_data(message):
-    msg = bot.reply_to(message, "Provide data as: <name>,<category>,<price>")
-
-    def save_new_data(m):
-        try:
-            user_id = m.from_user.id
-            name, category, price = m.text.split(",")
-            payload = {"name": name.strip(), "category": category.strip(), "price": float(price), "quantity": user_id}
-            response = requests.post(API_URL, json=payload)
-            if response.status_code == 201:
-                bot.send_message(m.chat.id, "Data added successfully.", reply_markup=get_main_menu())
-            else:
-                bot.send_message(m.chat.id, "Failed to add data.", reply_markup=get_main_menu())
-        except Exception as e:
-            logging.error(f"Error adding data: {e}")
-            bot.send_message(m.chat.id, "Invalid input. Please try again.", reply_markup=get_main_menu())
-
-    bot.register_next_step_handler(msg, save_new_data)
-
-@bot.message_handler(func=lambda message: message.text == "Update Data")
-def update_data(message):
-    msg = bot.reply_to(message, "Provide data as: <id>,<name>,<category>,<price>")
-
-    def save_updated_data(m):
-        try:
-            user_id = m.from_user.id
-            data = m.text.split(",")
-            if len(data) != 4:
-                bot.send_message(m.chat.id, "Invalid input. Format: <id>,<name>,<category>,<price>", reply_markup=get_main_menu())
-                return
-            data_id, name, category, price = data
-            payload = {"name": name.strip(), "category": category.strip(), "price": float(price), "quantity": user_id}
-            response = requests.put(f"{API_URL}/{data_id}", json=payload)
-            if response.status_code == 200:
-                bot.send_message(m.chat.id, "Data updated successfully.", reply_markup=get_main_menu())
-            else:
-                bot.send_message(m.chat.id, "Failed to update data.", reply_markup=get_main_menu())
-        except Exception as e:
-            logging.error(f"Error updating data: {e}")
-            bot.send_message(m.chat.id, "Invalid input. Please try again.", reply_markup=get_main_menu())
-
-    bot.register_next_step_handler(msg, save_updated_data)
-
-@bot.message_handler(func=lambda message: message.text == "Delete Data")
-def delete_data(message):
-    msg = bot.reply_to(message, "Provide the ID of the data to delete.")
-
-    def confirm_delete(m):
-        try:
-            data_id = m.text
-            response = requests.delete(f"{API_URL}/{data_id}")
-            if response.status_code == 200:
-                bot.send_message(m.chat.id, "Data deleted successfully.", reply_markup=get_main_menu())
-            else:
-                bot.send_message(m.chat.id, "Failed to delete data. Ensure the ID is correct.", reply_markup=get_main_menu())
-        except Exception as e:
-            logging.error(f"Error deleting data: {e}")
-            bot.send_message(m.chat.id, "Invalid input. Please try again.", reply_markup=get_main_menu())
-
-    bot.register_next_step_handler(msg, confirm_delete)
-
-@bot.message_handler(func=lambda message: message.text == "View My Products")
-def view_my_products(message):
-    try:
-        user_id = message.from_user.id  # Retrieve the user's Telegram user_id
-        response = requests.get(f"{API_URL}/by-quantity/{user_id}")  # Use the user_id as quantity in the API request
-
-        if response.status_code == 200:
-            # If products are found, display them
-            products = response.json()
-            if products:
-                result = "\n".join([f"ID: {p['id']} | Name: {p['name']} | Category: {p['category']} | Price: ${p['price']}" for p in products])
-                bot.send_message(message.chat.id, f"Your Products:\n{result}", reply_markup=get_main_menu())
-            else:
-                bot.send_message(message.chat.id, "You have no products.", reply_markup=get_main_menu())
-        else:
-            # Handle errors (e.g., no products found)
-            bot.send_message(message.chat.id, "Failed to fetch your products. Please try again later.", reply_markup=get_main_menu())
-    except Exception as e:
-        logging.error(f"Error retrieving products for user {message.from_user.id}: {e}")
-        bot.send_message(message.chat.id, "Oops! Something went wrong. Please try again.", reply_markup=get_main_menu())
+def assign_role(user_id, role):
+    # Logic to save role to the database (mock implementation)
+    logging.info(f"Assigning role {role} to user {user_id}")
+    # Replace this with actual database interaction code
 
 @bot.message_handler(commands=["help"])
 def handle_help(message):
