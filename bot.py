@@ -99,7 +99,7 @@ def handle_start(message):
 
 # Function to call the ngrok API to assign a role
 def assign_role_via_api(username, chat_id, new_role):
-    url = f"{API_URL}/users/add_user"
+    url = f"{API_URL}/users/add"
     payload = {
         "username" : username,
         "chat_id": chat_id,  # Admin user who is assigning the role
