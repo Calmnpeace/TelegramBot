@@ -243,7 +243,7 @@ def handle_unknown_command(message):
             "You have not registered a role yet. Use /start to register your role."
         )
 
-@bot.message_handler(commands=["help"], func=lambda call:True)
+@bot.message_handler(func=lambda call:True)
 def handle_help(message):
     chat_id = message.from_user.id
     existing_role = check_user_role(chat_id)
