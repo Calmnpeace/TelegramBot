@@ -3,6 +3,7 @@ import telebot
 import os
 import logging
 import requests
+from telebot.types import ReplyKeyboardRemove
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -137,6 +138,7 @@ def handle_start(message):
             reply_markup=markup
         )
         bot.register_next_step_handler(msg, process_role_selection)
+        ReplyKeyboardRemove()
 
 # Function to call the ngrok API to assign a role
 def assign_role_via_api(username, chat_id, new_role):
@@ -241,25 +243,28 @@ def handle_unknown_command(message):
             "You have not registered a role yet. Use /start to register your role."
         )
 
-@bot.message_handler(commands=["help"])
+@bot.message_handler(commands=["help"], func=lambda call:True)
 def handle_help(message):
-    help_text = (
-        "🛠️ **Bot Commands**:\n"
-        "/start - Initialize your account.\n"
-        "/help - Show this help message.\n"
-        "/info - Get information about this bot.\n\n"
-        "🎛️ **Menu Options**:\n"
-        "1. **View All Products** - View all the stored data.\n"
-        "2. **Add New Data** - Add new data to your account.\n"
-        "3. **Update Data** - Update an existing data entry.\n"
-        "4. **Delete Data** - Delete an existing data entry.\n"
-        "5. **Get Product by ID** - Fetch a single product by its ID.\n"
-        "6. **View My Products** - View all the data stored by you.\n\n"
-        "💡 **Usage Tips**:\n"
-        "- Use the provided menu for easy navigation.\n"
-        "- Ensure all inputs are in the correct format (e.g., `<name>,<category>,<price>`)."
-    )
-    bot.send_message(message.chat.id, help_text, parse_mode="Markdown", reply_markup=get_main_menu(''))
+    chat_id = message.from_user.id
+    existing_role = check_user_role(chat_id)
+    if message.data == "help":
+        help_text = (
+            "🛠️ **Bot Commands**:\n"
+            "/start - Initialize your account.\n"
+            "/help - Show this help message.\n"
+            "/info - Get information about this bot.\n\n"
+            "🎛️ **Menu Options**:\n"
+            "1. **View All Products** - View all the stored data.\n"
+            "2. **Add New Data** - Add new data to your account.\n"
+            "3. **Update Data** - Update an existing data entry.\n"
+            "4. **Delete Data** - Delete an existing data entry.\n"
+            "5. **Get Product by ID** - Fetch a single product by its ID.\n"
+            "6. **View My Products** - View all the data stored by you.\n\n"
+            "💡 **Usage Tips**:\n"
+            "- Use the provided menu for easy navigation.\n"
+            "- Ensure all inputs are in the correct format (e.g., `<name>,<category>,<price>`)."
+        )
+        bot.send_message(message.chat.id, help_text, parse_mode="Markdown", reply_markup=get_main_menu(existing_role))
 
 @bot.message_handler(commands=["info"])
 def handle_info(message):
