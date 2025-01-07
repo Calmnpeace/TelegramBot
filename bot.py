@@ -17,7 +17,7 @@ bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__)
 
 # API URL (replace with your actual ngrok URL or hosted API URL)
-API_URL = "https://0225-218-111-149-235.ngrok-free.app"
+API_URL = "https://2f8c-218-111-149-235.ngrok-free.app"
 
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
@@ -31,26 +31,63 @@ def webhook():
         logging.error(f"Error processing webhook: {e}")
         return "Internal Server Error", 500
 
-# Helper Function: Persistent Menu (Inline Keyboard)
-def get_main_menu():
-    logging.info("Generating main menu keyboard")
+def get_main_menu(role):
+    """
+    Generates a main menu inline keyboard dynamically based on the user's role.
+    :param role: The role of the user (e.g., 'admin', 'moderator', 'user').
+    :return: InlineKeyboardMarkup object with buttons tailored to the user's role.
+    """
+    logging.info(f"Generating main menu keyboard for role: {role}")
     keyboard = telebot.types.InlineKeyboardMarkup()
+
+    # Admin-specific menu options
+    if role == "admin":
+        keyboard.add(
+            telebot.types.InlineKeyboardButton("View All Products", callback_data="view_all_products"),
+            telebot.types.InlineKeyboardButton("Add New Product", callback_data="add_new_product"),
+            telebot.types.InlineKeyboardButton("Update Product", callback_data="update_product"),
+            telebot.types.InlineKeyboardButton("Delete Product", callback_data="delete_product"),
+        )
+        keyboard.add(
+            telebot.types.InlineKeyboardButton("View All Orders", callback_data="view_all_orders"),
+            telebot.types.InlineKeyboardButton("Delete Orders", callback_data="delete_orders"),
+        )
+
+    # Moderator-specific menu options
+    elif role == "moderator":
+        keyboard.add(
+            telebot.types.InlineKeyboardButton("View All Products", callback_data="view_all_products"),
+            telebot.types.InlineKeyboardButton("Add New Product", callback_data="add_new_product"),
+            telebot.types.InlineKeyboardButton("Update Product", callback_data="update_product"),
+        )
+        keyboard.add(
+            telebot.types.InlineKeyboardButton("View My Orders", callback_data="view_my_orders"),
+        )
+
+    # User-specific menu options
+    elif role == "user":
+        keyboard.add(
+            telebot.types.InlineKeyboardButton("View All Products", callback_data="view_all_products"),
+            telebot.types.InlineKeyboardButton("View My Products", callback_data="view_my_products"),
+        )
+        keyboard.add(
+            telebot.types.InlineKeyboardButton("Place an Order", callback_data="place_order"),
+            telebot.types.InlineKeyboardButton("View My Orders", callback_data="view_my_orders"),
+        )
+
+    else :
+        bot.send_message(
+            role.chat.id,
+            f"You have no role, kindly use '/start' to select role.",
+        )
+
+    # Common options for all roles
     keyboard.add(
-        telebot.types.InlineKeyboardButton("View All Products", callback_data="view_all_products"),
-        telebot.types.InlineKeyboardButton("Add New Data", callback_data="add_new_data")
-    )
-    keyboard.add(
-        telebot.types.InlineKeyboardButton("Update Data", callback_data="update_data"),
-        telebot.types.InlineKeyboardButton("Delete Data", callback_data="delete_data")
-    )
-    keyboard.add(
-        telebot.types.InlineKeyboardButton("Get Product by ID", callback_data="get_product_by_id"),
-        telebot.types.InlineKeyboardButton("View My Products", callback_data="view_my_products")
-    )
-    keyboard.add(
+        telebot.types.InlineKeyboardButton("Start", callback_data="start"),
         telebot.types.InlineKeyboardButton("Help", callback_data="help"),
         telebot.types.InlineKeyboardButton("Info", callback_data="info")
     )
+
     return keyboard
 
 
@@ -82,7 +119,7 @@ def handle_start(message):
         bot.send_message(
             message.chat.id,
             f"You already have the role '{existing_role}'. Use the menu below to manage your data or change your role.",
-            reply_markup=get_main_menu()
+            reply_markup=get_main_menu(existing_role)
         )
     else:
         # If no role exists, ask the user to select a role
@@ -131,7 +168,7 @@ def process_role_selection(message):
             bot.send_message(
                 message.chat.id,
                 "You have been assigned the 'User' role. Use the menu below to manage your data.",
-                reply_markup=get_main_menu()
+                reply_markup=get_main_menu(role)
             )
     else:
         # For "Admin" or "Moderator", request additional credentials
@@ -155,7 +192,7 @@ def verify_credentials(message, role):
             bot.send_message(
                 message.chat.id,
                 f"Your credentials are verified. You are now assigned the '{role}' role.",
-                reply_markup=get_main_menu()
+                reply_markup=get_main_menu(role)
             )
         else:
             bot.send_message(
@@ -166,7 +203,7 @@ def verify_credentials(message, role):
         bot.send_message(
             message.chat.id,
             "Invalid credentials. Please try again.",
-            reply_markup=get_main_menu()
+            reply_markup=get_main_menu(role)
         )
 
 @bot.message_handler(commands=["help"])
@@ -187,7 +224,7 @@ def handle_help(message):
         "- Use the provided menu for easy navigation.\n"
         "- Ensure all inputs are in the correct format (e.g., `<name>,<category>,<price>`)."
     )
-    bot.send_message(message.chat.id, help_text, parse_mode="Markdown", reply_markup=get_main_menu())
+    bot.send_message(message.chat.id, help_text, parse_mode="Markdown", reply_markup=get_main_menu(''))
 
 @bot.message_handler(commands=["info"])
 def handle_info(message):
@@ -202,7 +239,7 @@ def handle_info(message):
         "🔗 **Developer**:\n"
         "Created by [Your Name]. For queries or issues, contact: [Your Contact Info]."
     )
-    bot.send_message(message.chat.id, info_text, parse_mode="Markdown", reply_markup=get_main_menu())
+    bot.send_message(message.chat.id, info_text, parse_mode="Markdown", reply_markup=get_main_menu(''))
 
 @bot.message_handler(func=lambda message: True)  # Catches any unrecognized command or input
 def handle_unknown_command(message):
@@ -210,7 +247,7 @@ def handle_unknown_command(message):
         message.chat.id,
         f"🚫 Sorry, I didn't understand that command.\n"
         "Type /help to see the list of available commands or use the menu options below.",
-        reply_markup=get_main_menu()
+        reply_markup=get_main_menu('')
     )
 
 @app.route("/setwebhook", methods=["GET"])
