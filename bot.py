@@ -41,7 +41,7 @@ def get_main_menu(role):
     keyboard = telebot.types.InlineKeyboardMarkup()
 
     # Admin-specific menu options
-    if role == "admin":
+    if role == "Admin":
         keyboard.add(
             telebot.types.InlineKeyboardButton("View All Products", callback_data="view_all_products"),
             telebot.types.InlineKeyboardButton("Add New Product", callback_data="add_new_product"),
@@ -54,7 +54,7 @@ def get_main_menu(role):
         )
 
     # Moderator-specific menu options
-    elif role == "moderator":
+    elif role == "Moderator":
         keyboard.add(
             telebot.types.InlineKeyboardButton("View All Products", callback_data="view_all_products"),
             telebot.types.InlineKeyboardButton("Add New Product", callback_data="add_new_product"),
@@ -65,7 +65,7 @@ def get_main_menu(role):
         )
 
     # User-specific menu options
-    elif role == "user":
+    elif role == "User":
         keyboard.add(
             telebot.types.InlineKeyboardButton("View All Products", callback_data="view_all_products"),
             telebot.types.InlineKeyboardButton("View My Products", callback_data="view_my_products"),
@@ -80,6 +80,7 @@ def get_main_menu(role):
             role.chat.id,
             f"You have no role, kindly use '/start' to select role.",
         )
+        return None
 
     # Common options for all roles
     keyboard.add(
@@ -115,24 +116,27 @@ def handle_start(message):
     existing_role = check_user_role(chat_id)
 
     if existing_role:
-        # If the user already has a role, inform them and offer a role change option
-        bot.send_message(
-            message.chat.id,
-            f"You already have the role '{existing_role}'. Use the menu below to manage your data or change your role.",
-            reply_markup=get_main_menu(existing_role)
-        )
+        # If the user already has a role, show the corresponding menu
+        keyboard = get_main_menu(existing_role)
+        if keyboard:
+            bot.send_message(
+                chat_id,
+                f"Welcome back! You already have the role '{existing_role}'. Here is your menu:",
+                reply_markup=keyboard
+            )
+        else:
+            bot.send_message(chat_id, "Error: Unable to generate menu. Please contact support.")
     else:
         # If no role exists, ask the user to select a role
         markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
         markup.add("User", "Admin", "Moderator")
         msg = bot.send_message(
-            message.chat.id,
+            chat_id,
             "Hello! Welcome to the Mother Database Management System.\n"
             "Please select your role to proceed:",
             reply_markup=markup
         )
         bot.register_next_step_handler(msg, process_role_selection)
-
 
 # Function to call the ngrok API to assign a role
 def assign_role_via_api(username, chat_id, new_role):
@@ -161,20 +165,27 @@ def process_role_selection(message):
     username = message.from_user.username
     logging.info(f"User {chat_id} selected role: {role}")
 
-    # Assign the role via the API
-    if role.lower() == "user":
-        success = assign_role_via_api(username, chat_id, role)  # Self-assign as "User"
-        if success:
-            bot.send_message(
-                message.chat.id,
-                "You have been assigned the 'User' role. Use the menu below to manage your data.",
-                reply_markup=get_main_menu(role)
-            )
-    else:
-        # For "Admin" or "Moderator", request additional credentials
-        msg = bot.reply_to(message, f"As a {role}, please provide your credentials (e.g., admin passcode):")
-        bot.register_next_step_handler(msg, verify_credentials, role)
+    if role.lower() not in ["user", "admin", "moderator"]:
+        bot.send_message(
+            chat_id,
+            "Invalid role selected. Please try again.",
+            reply_markup=telebot.types.ReplyKeyboardRemove()
+        )
+        return
 
+    # Assign the role via the API
+    success = assign_role_via_api(username, chat_id, role)
+    if success:
+        bot.send_message(
+            chat_id,
+            f"You have been assigned the '{role}' role. Here is your menu:",
+            reply_markup=get_main_menu(role)
+        )
+    else:
+        bot.send_message(
+            chat_id,
+            "Failed to assign role. Please try again or contact support."
+        )
 
 # Verify user credentials before assigning admin or moderator roles
 def verify_credentials(message, role):
@@ -204,6 +215,30 @@ def verify_credentials(message, role):
             message.chat.id,
             "Invalid credentials. Please try again.",
             reply_markup=get_main_menu(role)
+        )
+
+@bot.message_handler(func=lambda message: True)  # Catches any unrecognized command or input
+def handle_unknown_command(message):
+    chat_id = message.from_user.id
+    role = check_user_role(chat_id)
+
+    if role:
+        keyboard = get_main_menu(role)
+        if keyboard:
+            bot.send_message(
+                chat_id,
+                "Please use the menu options below to interact with the system.",
+                reply_markup=keyboard
+            )
+        else:
+            bot.send_message(
+                chat_id,
+                "Error: Unable to generate menu. Please contact support."
+            )
+    else:
+        bot.send_message(
+            chat_id,
+            "You have not registered a role yet. Use /start to register your role."
         )
 
 @bot.message_handler(commands=["help"])
