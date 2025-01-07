@@ -62,7 +62,7 @@ def get_main_menu(role):
             telebot.types.InlineKeyboardButton("Update Product", callback_data="update_product"),
         )
         keyboard.add(
-            telebot.types.InlineKeyboardButton("View My Orders", callback_data="view_my_orders"),
+            telebot.types.InlineKeyboardButton("View My Orders", callback_data="view_all_orders"),
         )
 
     # User-specific menu options
@@ -73,7 +73,7 @@ def get_main_menu(role):
         )
         keyboard.add(
             telebot.types.InlineKeyboardButton("Place an Order", callback_data="place_order"),
-            telebot.types.InlineKeyboardButton("View My Orders", callback_data="view_my_orders"),
+            telebot.types.InlineKeyboardButton("View My Orders", callback_data="view_all_orders"),
         )
 
     else :
@@ -246,7 +246,7 @@ def view_all_products(chat_id):
             for product in products:
                 message += f"- ID: {product['id']}\n"
                 message += f"  Name: {product['name']}\n"
-                message += f"  Category: {product['category']}\n"
+                message += f"  Description: {product['description']}\n"
                 message += f"  Price: {product['price']}\n\n"
             bot.send_message(chat_id, message, parse_mode="Markdown")
         else:
@@ -287,21 +287,21 @@ def delete_product(chat_id, product_id):
 @bot.callback_query_handler(func=lambda call: call.data == "update_product")
 def handle_update_product(call):
     chat_id = call.message.chat.id
-    bot.send_message(chat_id, "Please provide the product ID and the updated details in the format: product_id,name,category,price")
+    bot.send_message(chat_id, "Please provide the product ID and the updated details in the format: product_id,name,description,price")
     bot.register_next_step_handler(call.message, process_update_product)
 
 def process_update_product(message):
     chat_id = message.chat.id
     try:
-        product_id, name, category, price = message.text.split(",")
+        product_id, name, description, price = message.text.split(",")
         updated_data = {
             "name": name.strip(),
-            "category": category.strip(),
+            "description": description.strip(),
             "price": float(price.strip())
         }
         update_product(chat_id, product_id.strip(), updated_data)
     except ValueError:
-        bot.send_message(chat_id, "Invalid format. Use: product_id,name,category,price.")
+        bot.send_message(chat_id, "Invalid format. Use: product_id,name,description,price.")
 
 @bot.callback_query_handler(func=lambda call: call.data == "delete_product")
 def handle_delete_product(call):
@@ -375,7 +375,7 @@ def handle_callback(call):
     if call.data == "view_all_products":
         view_all_products(chat_id)
     elif call.data == "add_new_product":
-        bot.send_message(chat_id, "Please send product details in the format: name,category,price")
+        bot.send_message(chat_id, "Please send product details in the format: name,description,price")
         bot.register_next_step_handler(call.message, handle_add_product)
     elif call.data == "view_all_orders":
         view_all_orders()
@@ -396,11 +396,11 @@ def handle_callback(call):
 def handle_add_product(message):
     chat_id = message.chat.id
     try:
-        name, category, price = message.text.split(",")
-        product_data = {"name": name.strip(), "category": category.strip(), "price": float(price.strip()), "created_by": chat_id}
+        name, description, price = message.text.split(",")
+        product_data = {"name": name.strip(), "description": description.strip(), "price": float(price.strip()), "created_by": chat_id}
         add_new_product(chat_id, product_data)
     except ValueError:
-        bot.send_message(chat_id, "Invalid format. Use: name,category,price.")
+        bot.send_message(chat_id, "Invalid format. Use: name,description,price.")
 
 def handle_place_order(message):
     chat_id = message.chat.id
