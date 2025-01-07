@@ -244,10 +244,10 @@ def handle_unknown_command(message):
         )
 
 @bot.message_handler(func=lambda call:True)
-def handle_help(message):
-    chat_id = message.from_user.id
+def handle_help(call):
+    chat_id = call.from_user.id
     existing_role = check_user_role(chat_id)
-    if message.data == "help":
+    if call.data == "help":
         help_text = (
             "🛠️ **Bot Commands**:\n"
             "/start - Initialize your account.\n"
