@@ -284,22 +284,56 @@ def delete_product(chat_id, product_id):
     except Exception as e:
         bot.send_message(chat_id, f"⚠️ Error: {e}")
 
-def view_my_orders(chat_id, user_id):
+@bot.callback_query_handler(func=lambda call: call.data == "update_product")
+def handle_update_product(call):
+    chat_id = call.message.chat.id
+    bot.send_message(chat_id, "Please provide the product ID and the updated details in the format: product_id,name,category,price")
+    bot.register_next_step_handler(call.message, process_update_product)
+
+def process_update_product(message):
+    chat_id = message.chat.id
     try:
-        response = requests.get(f"{API_URL}/orders/{user_id}")
+        product_id, name, category, price = message.text.split(",")
+        updated_data = {
+            "name": name.strip(),
+            "category": category.strip(),
+            "price": float(price.strip())
+        }
+        update_product(chat_id, product_id.strip(), updated_data)
+    except ValueError:
+        bot.send_message(chat_id, "Invalid format. Use: product_id,name,category,price.")
+
+@bot.callback_query_handler(func=lambda call: call.data == "delete_product")
+def handle_delete_product(call):
+    chat_id = call.message.chat.id
+    bot.send_message(chat_id, "Please provide the product ID to delete:")
+    bot.register_next_step_handler(call.message, process_delete_product)
+
+def process_delete_product(message):
+    chat_id = message.chat.id
+    try:
+        product_id = message.text.strip()
+        delete_product(chat_id, product_id)
+    except Exception as e:
+        bot.send_message(chat_id, f"Error processing deletion: {e}")
+
+def view_all_orders():
+    try:
+        response = requests.get(f"{API_URL}/orders")
         if response.status_code == 200:
             orders = response.json()
-            message = "📋 **Your Orders**:\n\n"
+            message = "📋 **All Orders**:\n\n"
             for order in orders:
                 message += f"- Order ID: {order['id']}\n"
                 message += f"  Product ID: {order['product_id']}\n"
                 message += f"  Quantity: {order['quantity']}\n"
                 message += f"  Status: {order['status']}\n\n"
-            bot.send_message(chat_id, message, parse_mode="Markdown")
+            bot.send_message(message, parse_mode="Markdown")
         else:
-            bot.send_message(chat_id, "❌ Failed to fetch your orders.")
+            bot.send_message("❌ Failed to fetch orders.")
     except Exception as e:
-        bot.send_message(chat_id, f"⚠️ Error: {e}")
+        bot.send_message( f"⚠️ Error: {e}")
+
 
 def place_order(chat_id, order_data):
     try:
@@ -308,6 +342,24 @@ def place_order(chat_id, order_data):
             bot.send_message(chat_id, "✅ Order placed successfully.")
         else:
             bot.send_message(chat_id, "❌ Failed to place order.")
+    except Exception as e:
+        bot.send_message(chat_id, f"⚠️ Error: {e}")
+
+def delete_orders(chat_id):
+    bot.send_message(chat_id, "Send the Order ID to delete in the format: `/delete_order <order_id>`")
+
+@bot.message_handler(commands=["delete_order"])
+def handle_delete_order(message):
+    chat_id = message.chat.id
+    try:
+        order_id = int(message.text.split()[1])
+        response = requests.delete(f"{API_URL}/orders/{order_id}")
+        if response.status_code == 200:
+            bot.send_message(chat_id, f"✅ Order {order_id} deleted successfully.")
+        else:
+            bot.send_message(chat_id, f"❌ Failed to delete order {order_id}.")
+    except (IndexError, ValueError):
+        bot.send_message(chat_id, "Invalid format. Use: `/delete_order <order_id>`.")
     except Exception as e:
         bot.send_message(chat_id, f"⚠️ Error: {e}")
 
@@ -325,11 +377,20 @@ def handle_callback(call):
     elif call.data == "add_new_product":
         bot.send_message(chat_id, "Please send product details in the format: name,category,price")
         bot.register_next_step_handler(call.message, handle_add_product)
-    elif call.data == "view_my_orders":
-        view_my_orders(chat_id, chat_id)  # Use chat_id as user_id
+    elif call.data == "view_all_orders":
+        view_all_orders()
+    elif call.data == "delete_orders":
+        delete_orders(chat_id)
     elif call.data == "place_order":
         bot.send_message(chat_id, "Please send order details in the format: product_id,quantity")
         bot.register_next_step_handler(call.message, handle_place_order)
+    elif call.data == "start":
+        handle_start(call.message)
+    elif call.data == "help":
+        handle_help(call.message)
+    elif call.data == "info":
+        handle_info(call.message)
+
     # Add more handlers as needed
 
 def handle_add_product(message):
