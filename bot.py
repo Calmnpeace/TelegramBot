@@ -264,7 +264,7 @@ def handle_help(call):
             "- Use the provided menu for easy navigation.\n"
             "- Ensure all inputs are in the correct format (e.g., `<name>,<category>,<price>`)."
         )
-        bot.send_message(message.chat.id, help_text, parse_mode="Markdown", reply_markup=get_main_menu(existing_role))
+        bot.send_message(call.chat.id, help_text, parse_mode="Markdown", reply_markup=get_main_menu(existing_role))
 
 @bot.message_handler(commands=["info"])
 def handle_info(message):
