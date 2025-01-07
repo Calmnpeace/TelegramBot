@@ -92,7 +92,6 @@ def get_main_menu(role):
 
     return keyboard
 
-
 # Check if user exists and fetch their role
 def check_user_role(chat_id):
     try:
@@ -108,37 +107,32 @@ def check_user_role(chat_id):
 
 
 # Process role selection in the bot
+@bot.callback_query_handler(func=lambda call: call.data == "start")
 @bot.message_handler(commands=["start"])
 def handle_start(message):
-    chat_id = message.from_user.id
-    logging.info(f"Handling /start command from user {chat_id}")
+    chat_id = message.chat.id
+    role = check_user_role(chat_id)
 
-    # Check if the user already has a role
-    existing_role = check_user_role(chat_id)
-
-    if existing_role:
-        # If the user already has a role, show the corresponding menu
-        keyboard = get_main_menu(existing_role)
-        if keyboard:
-            bot.send_message(
-                chat_id,
-                f"Welcome back! You already have the role '{existing_role}'. Here is your menu:",
-                reply_markup=keyboard
-            )
-        else:
-            bot.send_message(chat_id, "Error: Unable to generate menu. Please contact support.")
+    if role:
+        # If the user already has a role, show the menu
+        bot.send_message(
+            chat_id,
+            f"Welcome back, {message.from_user.first_name}!\n"
+            f"You are logged in as a '{role}'. Here is your menu:",
+            reply_markup=get_main_menu(role),
+        )
     else:
-        # If no role exists, ask the user to select a role
+        # If no role exists, prompt the user to select one
         markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
         markup.add("User", "Admin", "Moderator")
         msg = bot.send_message(
             chat_id,
             "Hello! Welcome to the Mother Database Management System.\n"
             "Please select your role to proceed:",
-            reply_markup=markup
+            reply_markup=markup,
         )
         bot.register_next_step_handler(msg, process_role_selection)
-        ReplyKeyboardRemove()
+
 
 # Function to call the ngrok API to assign a role
 def assign_role_via_api(username, chat_id, new_role):
@@ -243,43 +237,174 @@ def handle_unknown_command(message):
             "You have not registered a role yet. Use /start to register your role."
         )
 
-@bot.message_handler(func=lambda call:True)
-def handle_help(call):
+def view_all_products(chat_id):
+    try:
+        response = requests.get(f"{API_URL}/products")
+        if response.status_code == 200:
+            products = response.json()
+            message = "📦 **All Products**:\n\n"
+            for product in products:
+                message += f"- ID: {product['id']}\n"
+                message += f"  Name: {product['name']}\n"
+                message += f"  Category: {product['category']}\n"
+                message += f"  Price: {product['price']}\n\n"
+            bot.send_message(chat_id, message, parse_mode="Markdown")
+        else:
+            bot.send_message(chat_id, "❌ Failed to fetch products.")
+    except Exception as e:
+        bot.send_message(chat_id, f"⚠️ Error: {e}")
+
+def add_new_product(chat_id, product_data):
+    try:
+        response = requests.post(f"{API_URL}/products", json=product_data)
+        if response.status_code == 201:
+            bot.send_message(chat_id, "✅ Product added successfully.")
+        else:
+            bot.send_message(chat_id, "❌ Failed to add product.")
+    except Exception as e:
+        bot.send_message(chat_id, f"⚠️ Error: {e}")
+
+def update_product(chat_id, product_id, updated_data):
+    try:
+        response = requests.put(f"{API_URL}/products/{product_id}", json=updated_data)
+        if response.status_code == 200:
+            bot.send_message(chat_id, "✅ Product updated successfully.")
+        else:
+            bot.send_message(chat_id, "❌ Failed to update product.")
+    except Exception as e:
+        bot.send_message(chat_id, f"⚠️ Error: {e}")
+
+def delete_product(chat_id, product_id):
+    try:
+        response = requests.delete(f"{API_URL}/products/{product_id}")
+        if response.status_code == 200:
+            bot.send_message(chat_id, "✅ Product deleted successfully.")
+        else:
+            bot.send_message(chat_id, "❌ Failed to delete product.")
+    except Exception as e:
+        bot.send_message(chat_id, f"⚠️ Error: {e}")
+
+def view_my_orders(chat_id, user_id):
+    try:
+        response = requests.get(f"{API_URL}/orders/{user_id}")
+        if response.status_code == 200:
+            orders = response.json()
+            message = "📋 **Your Orders**:\n\n"
+            for order in orders:
+                message += f"- Order ID: {order['id']}\n"
+                message += f"  Product ID: {order['product_id']}\n"
+                message += f"  Quantity: {order['quantity']}\n"
+                message += f"  Status: {order['status']}\n\n"
+            bot.send_message(chat_id, message, parse_mode="Markdown")
+        else:
+            bot.send_message(chat_id, "❌ Failed to fetch your orders.")
+    except Exception as e:
+        bot.send_message(chat_id, f"⚠️ Error: {e}")
+
+def place_order(chat_id, order_data):
+    try:
+        response = requests.post(f"{API_URL}/orders", json=order_data)
+        if response.status_code == 201:
+            bot.send_message(chat_id, "✅ Order placed successfully.")
+        else:
+            bot.send_message(chat_id, "❌ Failed to place order.")
+    except Exception as e:
+        bot.send_message(chat_id, f"⚠️ Error: {e}")
+
+@bot.callback_query_handler(func=lambda call: True)
+def handle_callback(call):
     chat_id = call.from_user.id
     existing_role = check_user_role(chat_id)
-    if call.data == "help":
+
+    if not existing_role:
+        bot.send_message(chat_id, "You do not have a role assigned. Use /start to register.")
+        return
+
+    if call.data == "view_all_products":
+        view_all_products(chat_id)
+    elif call.data == "add_new_product":
+        bot.send_message(chat_id, "Please send product details in the format: name,category,price")
+        bot.register_next_step_handler(call.message, handle_add_product)
+    elif call.data == "view_my_orders":
+        view_my_orders(chat_id, chat_id)  # Use chat_id as user_id
+    elif call.data == "place_order":
+        bot.send_message(chat_id, "Please send order details in the format: product_id,quantity")
+        bot.register_next_step_handler(call.message, handle_place_order)
+    # Add more handlers as needed
+
+def handle_add_product(message):
+    chat_id = message.chat.id
+    try:
+        name, category, price = message.text.split(",")
+        product_data = {"name": name.strip(), "category": category.strip(), "price": float(price.strip()), "created_by": chat_id}
+        add_new_product(chat_id, product_data)
+    except ValueError:
+        bot.send_message(chat_id, "Invalid format. Use: name,category,price.")
+
+def handle_place_order(message):
+    chat_id = message.chat.id
+    try:
+        product_id, quantity = message.text.split(",")
+        order_data = {"user_id": chat_id, "product_id": int(product_id.strip()), "quantity": int(quantity.strip())}
+        place_order(chat_id, order_data)
+    except ValueError:
+        bot.send_message(chat_id, "Invalid format. Use: product_id,quantity.")
+
+@bot.callback_query_handler(func=lambda call: call.data == "help")
+@bot.message_handler(commands=["help"])
+def handle_help(message_or_call):
+    # Determine whether the trigger is a message or a callback
+    chat_id = message_or_call.message.chat.id if hasattr(message_or_call, "message") else message_or_call.chat.id
+    role = check_user_role(chat_id)
+
+    if role:
         help_text = (
-            "🛠️ **Bot Commands**:\n"
-            "/start - Initialize your account.\n"
+            f"🛠️ **Bot Commands for {role}**:\n\n"
+            "/start - Initialize your account or reset your role.\n"
             "/help - Show this help message.\n"
             "/info - Get information about this bot.\n\n"
             "🎛️ **Menu Options**:\n"
-            "1. **View All Products** - View all the stored data.\n"
-            "2. **Add New Data** - Add new data to your account.\n"
-            "3. **Update Data** - Update an existing data entry.\n"
-            "4. **Delete Data** - Delete an existing data entry.\n"
-            "5. **Get Product by ID** - Fetch a single product by its ID.\n"
-            "6. **View My Products** - View all the data stored by you.\n\n"
-            "💡 **Usage Tips**:\n"
-            "- Use the provided menu for easy navigation.\n"
-            "- Ensure all inputs are in the correct format (e.g., `<name>,<category>,<price>`)."
+            "1. **View All Products** - View all products stored in the database.\n"
         )
-        bot.send_message(call.chat.id, help_text, parse_mode="Markdown", reply_markup=get_main_menu(existing_role))
+        if role in ["Admin", "Moderator"]:
+            help_text += (
+                "2. **Add New Product** - Add a new product to the database.\n"
+                "3. **Update Product** - Update an existing product's details.\n"
+            )
+        if role == "Admin":
+            help_text += "4. **Delete Product** - Remove a product from the database.\n"
+        if role in ["User", "Moderator", "Admin"]:
+            help_text += (
+                "5. **Place an Order** - Place an order for a product.\n"
+                "6. **View My Orders** - Check your order history.\n"
+            )
 
+        bot.send_message(chat_id, help_text, parse_mode="Markdown")
+    else:
+        bot.send_message(chat_id, "You do not have a role assigned yet. Use /start to register your role.")
+
+@bot.callback_query_handler(func=lambda call: call.data == "info")
 @bot.message_handler(commands=["info"])
 def handle_info(message):
+    chat_id = message.chat.id
+    role = check_user_role(chat_id)
+
     info_text = (
-        "🤖 **Bot Information**:\n"
-        "This bot is designed to help you manage your data efficiently via an interactive Telegram interface. "
-        "It allows you to view, add, update, and delete data securely.\n\n"
+        "🤖 **Bot Information**:\n\n"
+        "This bot is designed to help you manage your database efficiently through an interactive Telegram interface. "
+        "You can perform actions such as viewing products, placing orders, and managing data based on your role.\n\n"
+        "🔑 **Role-Based Features**:\n"
+        "- **Admin**: Full control of products and orders.\n"
+        "- **Moderator**: Limited management capabilities.\n"
+        "- **User**: Place orders and view products.\n\n"
         "📡 **Powered By**:\n"
-        "- Flask Web Framework\n"
-        "- Telebot Library for Telegram Integration\n"
-        "- A Backend API for Data Management\n\n"
-        "🔗 **Developer**:\n"
+        "- Flask Framework\n"
+        "- Telebot Library\n"
+        "- RESTful API for data operations\n\n"
+        "💡 **Developer**:\n"
         "Created by [Your Name]. For queries or issues, contact: [Your Contact Info]."
     )
-    bot.send_message(message.chat.id, info_text, parse_mode="Markdown", reply_markup=get_main_menu(''))
+    bot.send_message(chat_id, info_text, parse_mode="Markdown", reply_markup=get_main_menu(role))
 
 @bot.message_handler(func=lambda message: True)  # Catches any unrecognized command or input
 def handle_unknown_command(message):
