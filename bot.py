@@ -147,7 +147,7 @@ def update_role_via_api(username, chat_id, new_role):
     }
 
     try:
-        response = requests.put(url, json=payload)
+        response = requests.post(url, json=payload)
         if response.status_code == 200:
             return True  # Role successfully updated/assigned
         else:
