@@ -78,7 +78,7 @@ def get_main_menu(role):
     else :
         bot.send_message(
             role.chat.id,
-            f"You have no role, kindly use '/start' to select role.",
+            f"You have no role, kindly use '/start' to select roles.",
         )
         return None
 
