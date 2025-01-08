@@ -359,8 +359,7 @@ def view_all_orders(message):
 
 def view_all_ordersByUser(message):
     try:
-        id = message.chat.id
-        response = requests.get(f"{API_URL}/orders/{id}")
+        response = requests.get(f"{API_URL}/orders/{message}")
         if response.status_code == 200:
             orders = response.json()
             message = "📋 **All Orders**:\n\n"
