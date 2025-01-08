@@ -62,7 +62,7 @@ def get_main_menu(role):
             telebot.types.InlineKeyboardButton("Update Product", callback_data="update_product"),
         )
         keyboard.add(
-            telebot.types.InlineKeyboardButton("View My Orders", callback_data="view_all_orders"),
+            telebot.types.InlineKeyboardButton("View All Orders", callback_data="view_all_orders"),
         )
 
     # User-specific menu options
@@ -332,19 +332,29 @@ def process_delete_product(message):
 def view_all_orders():
     try:
         response = requests.get(f"{API_URL}/orders")
+        logging.info(f"API Response Status: {response.status_code}")
+        logging.info(f"API Response Content: {response.text}")  # Log the entire response
+
         if response.status_code == 200:
             orders = response.json()
+            logging.info(f"Parsed Orders: {orders}")  # Log parsed data
+            if not orders:  # If no data
+                bot.send_message("No orders found.")
+                return
+
             message = "📋 **All Orders**:\n\n"
             for order in orders:
                 message += f"- Order ID: {order['id']}\n"
                 message += f"  Product ID: {order['product_id']}\n"
                 message += f"  Quantity: {order['quantity']}\n"
                 message += f"  Order Date: {order['order_date']}\n\n"
+
             bot.send_message(message, parse_mode="Markdown")
         else:
             bot.send_message("❌ Failed to fetch orders.")
     except Exception as e:
-        bot.send_message( f"⚠️ Error: {e}")
+        logging.error(f"Error in view_all_orders: {e}")
+        bot.send_message(f"⚠️ Error: {e}")
 
 def view_all_ordersByUser(message):
     try:
