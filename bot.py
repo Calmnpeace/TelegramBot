@@ -417,7 +417,7 @@ def handle_callback(call):
     elif call.data == "add_new_product":
         bot.send_message(chat_id, "Please send product details in the format: name,description,price")
         bot.register_next_step_handler(call.message, handle_add_product)
-    elif call.data == "view_all_orders()":
+    elif call.data == "view_all_orders":
         view_all_orders(chat_id)
     elif call.data == "view_all_ordersByUser":
         view_all_ordersByUser(chat_id)
