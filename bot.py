@@ -135,23 +135,26 @@ def handle_start(message):
 
 
 # Function to call the ngrok API to assign a role
-def assign_role_via_api(username, chat_id, new_role):
+def update_role_via_api(username, chat_id, new_role):
+    """
+    Update or assign a role for a user via the API.
+    """
     url = f"{API_URL}/users/add"
     payload = {
-        "username" : username,
-        "chat_id": chat_id,  # Admin user who is assigning the role
-        "role": new_role,  # The new role to be assigned
+        "username": username,
+        "chat_id": chat_id,
+        "role": new_role
     }
 
     try:
-        response = requests.post(url, json=payload)
+        response = requests.put(url, json=payload)
         if response.status_code == 200:
-            return True  # Role successfully assigned
+            return True  # Role successfully updated/assigned
         else:
-            logging.error(f"Failed to assign role: {response.json()['error']}")
-            return False  # Failed to assign role
+            logging.error(f"Failed to update/assign role: {response.json().get('error', 'Unknown error')}")
+            return False
     except Exception as e:
-        logging.error(f"Error calling the assign role API: {e}")
+        logging.error(f"Error calling the update role API: {e}")
         return False
 
 # Process role selection from user input
@@ -161,6 +164,7 @@ def process_role_selection(message):
     username = message.from_user.username
     logging.info(f"User {chat_id} selected role: {role}")
 
+    # Check if the role is valid
     if role.lower() not in ["user", "admin", "moderator"]:
         bot.send_message(
             chat_id,
@@ -169,8 +173,17 @@ def process_role_selection(message):
         )
         return
 
-    # Assign the role via the API
-    success = assign_role_via_api(username, chat_id, role)
+    # If Admin or Moderator role is selected, verify credentials
+    if role.lower() in ["admin", "moderator"]:
+        bot.send_message(
+            chat_id,
+            f"To verify your credentials for the {role} role, please enter the passcode:"
+        )
+        bot.register_next_step_handler(message, lambda msg: verify_credentials(msg, role))
+        return
+
+    # For "User" role, directly assign without credentials
+    success = update_role_via_api(username, chat_id, role)
     if success:
         bot.send_message(
             chat_id,
@@ -190,27 +203,25 @@ def verify_credentials(message, role):
     chat_id = message.from_user.id
     logging.info(f"Verifying credentials for user {chat_id} as {role}")
 
-    # Example verification logic
+    # Example credential checks (replace with actual logic or API calls)
     if (role.lower() == "admin" and user_input == "admin_passcode") or \
-            (role.lower() == "moderator" and user_input == "moderator_passcode"):
-        # Assign role using the API
-        success = assign_role_via_api(username, chat_id, role)
+       (role.lower() == "moderator" and user_input == "moderator_passcode"):
+        success = update_role_via_api(username, chat_id, role)
         if success:
             bot.send_message(
-                message.chat.id,
+                chat_id,
                 f"Your credentials are verified. You are now assigned the '{role}' role.",
                 reply_markup=get_main_menu(role)
             )
         else:
             bot.send_message(
-                message.chat.id,
+                chat_id,
                 "Failed to assign role. Please contact support."
             )
     else:
         bot.send_message(
-            message.chat.id,
-            "Invalid credentials. Please try again.",
-            reply_markup=get_main_menu(role)
+            chat_id,
+            "Invalid credentials. Please try again or contact support."
         )
 
 @bot.message_handler(func=lambda message: True)  # Catches any unrecognized command or input
