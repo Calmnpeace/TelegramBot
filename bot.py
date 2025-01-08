@@ -42,7 +42,7 @@ def get_main_menu(role):
     keyboard = telebot.types.InlineKeyboardMarkup()
 
     # Admin-specific menu options
-    if role == "Admin":
+    if role == "Admin" or role == "admin":
         keyboard.add(
             telebot.types.InlineKeyboardButton("View All Products", callback_data="view_all_products"),
             telebot.types.InlineKeyboardButton("Add New Product", callback_data="add_new_product"),
@@ -55,7 +55,7 @@ def get_main_menu(role):
         )
 
     # Moderator-specific menu options
-    elif role == "Moderator":
+    elif role == "Moderator" or role == "moderator":
         keyboard.add(
             telebot.types.InlineKeyboardButton("View All Products", callback_data="view_all_products"),
             telebot.types.InlineKeyboardButton("Add New Product", callback_data="add_new_product"),
@@ -66,10 +66,9 @@ def get_main_menu(role):
         )
 
     # User-specific menu options
-    elif role == "User":
+    elif role == "User" or role == "user":
         keyboard.add(
             telebot.types.InlineKeyboardButton("View All Products", callback_data="view_all_products"),
-            telebot.types.InlineKeyboardButton("View My Products", callback_data="view_my_products"),
         )
         keyboard.add(
             telebot.types.InlineKeyboardButton("Place an Order", callback_data="place_order"),
