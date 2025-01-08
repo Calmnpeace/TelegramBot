@@ -350,12 +350,12 @@ def view_all_orders(message):
                 message_text += f"  Quantity: {order['quantity']}\n"
                 message_text += f"  Order Date: {order['order_date']}\n\n"
 
-            bot.send_message(message.chat.id, message_text, parse_mode="Markdown")
+            bot.send_message(message, message_text, parse_mode="Markdown")
         else:
-            bot.send_message(message.chat.id, "❌ Failed to fetch orders.")
+            bot.send_message(message, "❌ Failed to fetch orders.")
     except Exception as e:
         logging.error(f"Error in view_all_orders: {e}")
-        bot.send_message(message.chat.id, f"⚠️ Error: {e}")
+        bot.send_message(message, f"⚠️ Error: {e}")
 
 def view_all_ordersByUser(message):
     try:
@@ -418,7 +418,7 @@ def handle_callback(call):
         bot.send_message(chat_id, "Please send product details in the format: name,description,price")
         bot.register_next_step_handler(call.message, handle_add_product)
     elif call.data == "view_all_orders()":
-        view_all_orders(call)
+        view_all_orders(chat_id)
     elif call.data == "view_all_ordersByUser":
         view_all_ordersByUser(chat_id)
     elif call.data == "delete_orders":
