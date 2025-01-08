@@ -84,7 +84,7 @@ def get_main_menu(role):
 
     # Common options for all roles
     keyboard.add(
-        telebot.types.InlineKeyboardButton("Start", callback_data="start"),
+  telebot.types.InlineKeyboardButton("Start", callback_data="start"),
         telebot.types.InlineKeyboardButton("Help", callback_data="help"),
         telebot.types.InlineKeyboardButton("Info", callback_data="info")
     )
