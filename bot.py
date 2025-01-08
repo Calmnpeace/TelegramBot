@@ -18,7 +18,7 @@ bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__)
 
 # API URL (replace with your actual ngrok URL or hosted API URL)
-API_URL = "https://2f8c-218-111-149-235.ngrok-free.app"
+API_URL = "https://19c7-218-111-149-235.ngrok-free.app"
 
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
