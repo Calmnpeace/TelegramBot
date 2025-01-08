@@ -329,7 +329,7 @@ def process_delete_product(message):
     except Exception as e:
         bot.send_message(chat_id, f"Error processing deletion: {e}")
 
-def view_all_orders():
+def view_all_orders(chat_id):
     try:
         response = requests.get(f"{API_URL}/orders")
         logging.info(f"API Response Status: {response.status_code}")
@@ -349,12 +349,12 @@ def view_all_orders():
                 message += f"  Quantity: {order['quantity']}\n"
                 message += f"  Order Date: {order['order_date']}\n\n"
 
-            bot.send_message(message, parse_mode="Markdown")
+            bot.send_message(chat_id, message, parse_mode="Markdown")
         else:
-            bot.send_message("❌ Failed to fetch orders.")
+            bot.send_message(chat_id, "❌ Failed to fetch orders.")
     except Exception as e:
-        logging.error(f"Error in view_all_orders: {e}")
-        bot.send_message(f"⚠️ Error: {e}")
+        logging.error(chat_id, f"Error in view_all_orders: {e}")
+        bot.send_message(chat_id, f"⚠️ Error: {e}")
 
 def view_all_ordersByUser(message):
     try:
@@ -416,8 +416,8 @@ def handle_callback(call):
     elif call.data == "add_new_product":
         bot.send_message(chat_id, "Please send product details in the format: name,description,price")
         bot.register_next_step_handler(call.message, handle_add_product)
-    elif call.data == "view_all_orders":
-        view_all_orders()
+    elif call.data == "view_all_orders()":
+        view_all_orders(chat_id)
     elif call.data == "view_all_ordersByUser":
         view_all_ordersByUser(chat_id)
     elif call.data == "delete_orders":
