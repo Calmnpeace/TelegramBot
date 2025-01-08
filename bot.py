@@ -136,23 +136,25 @@ def handle_start(message):
 
 # Function to call the ngrok API to assign a role
 def update_role_via_api(username, chat_id, new_role):
-    """
-    Update or assign a role for a user via the API.
-    """
     url = f"{API_URL}/users/add"
     payload = {
         "username": username,
         "chat_id": chat_id,
         "role": new_role
     }
+    logging.info(f"Sending payload to API: {payload}")
 
     try:
         response = requests.post(url, json=payload)
         if response.status_code == 200:
-            return True  # Role successfully updated/assigned
+            return True
         else:
-            logging.error(f"Failed to update/assign role: {response.json().get('error', 'Unknown error')}")
+            error_message = response.json().get("error", "Unknown error")
+            logging.error(f"Failed to update/assign role: {error_message}")
             return False
+    except ValueError:
+        logging.error("Invalid or empty response from the API.")
+        return False
     except Exception as e:
         logging.error(f"Error calling the update role API: {e}")
         return False
