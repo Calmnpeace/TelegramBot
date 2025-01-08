@@ -362,6 +362,10 @@ def view_all_ordersByUser(message):
         response = requests.get(f"{API_URL}/orders/{message}")
         if response.status_code == 200:
             orders = response.json()
+            if not orders:  # If no data
+                bot.send_message(message.chat.id, "No orders found.")
+                return
+
             message = "📋 **All Orders**:\n\n"
             for order in orders:
                 message += f"- Order ID: {order['id']}\n"
