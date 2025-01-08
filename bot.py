@@ -329,32 +329,33 @@ def process_delete_product(message):
     except Exception as e:
         bot.send_message(chat_id, f"Error processing deletion: {e}")
 
-def view_all_orders(chat_id):
+def view_all_orders(message):
     try:
         response = requests.get(f"{API_URL}/orders")
         logging.info(f"API Response Status: {response.status_code}")
-        logging.info(f"API Response Content: {response.text}")  # Log the entire response
+        logging.info(f"API Response Content: {response.text}")  # Log the raw response
 
         if response.status_code == 200:
             orders = response.json()
-            logging.info(f"Parsed Orders: {orders}")  # Log parsed data
+            logging.info(f"Parsed Orders: {orders}")  # Log the parsed data
+
             if not orders:  # If no data
-                bot.send_message("No orders found.")
+                bot.send_message(message.chat.id, "No orders found.")
                 return
 
-            message = "📋 **All Orders**:\n\n"
+            message_text = "📋 **All Orders**:\n\n"
             for order in orders:
-                message += f"- Order ID: {order['id']}\n"
-                message += f"  Product ID: {order['product_id']}\n"
-                message += f"  Quantity: {order['quantity']}\n"
-                message += f"  Order Date: {order['order_date']}\n\n"
+                message_text += f"- Order ID: {order['id']}\n"
+                message_text += f"  Product ID: {order['product_id']}\n"
+                message_text += f"  Quantity: {order['quantity']}\n"
+                message_text += f"  Order Date: {order['order_date']}\n\n"
 
-            bot.send_message(chat_id, message, parse_mode="Markdown")
+            bot.send_message(message.chat.id, message_text, parse_mode="Markdown")
         else:
-            bot.send_message(chat_id, "❌ Failed to fetch orders.")
+            bot.send_message(message.chat.id, "❌ Failed to fetch orders.")
     except Exception as e:
-        logging.error(chat_id, f"Error in view_all_orders: {e}")
-        bot.send_message(chat_id, f"⚠️ Error: {e}")
+        logging.error(f"Error in view_all_orders: {e}")
+        bot.send_message(message.chat.id, f"⚠️ Error: {e}")
 
 def view_all_ordersByUser(message):
     try:
@@ -417,7 +418,7 @@ def handle_callback(call):
         bot.send_message(chat_id, "Please send product details in the format: name,description,price")
         bot.register_next_step_handler(call.message, handle_add_product)
     elif call.data == "view_all_orders()":
-        view_all_orders(chat_id)
+        view_all_orders(call)
     elif call.data == "view_all_ordersByUser":
         view_all_ordersByUser(chat_id)
     elif call.data == "delete_orders":
