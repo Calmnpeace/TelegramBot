@@ -72,7 +72,7 @@ def get_main_menu(role):
         )
         keyboard.add(
             telebot.types.InlineKeyboardButton("Place an Order", callback_data="place_order"),
-            telebot.types.InlineKeyboardButton("View My Orders", callback_data="view_all_orders"),
+            telebot.types.InlineKeyboardButton("View My Orders", callback_data="view_all_ordersByUser"),
         )
 
     else :
@@ -131,7 +131,7 @@ def handle_start(message):
             reply_markup=markup,
         )
         bot.register_next_step_handler(msg, process_role_selection)
-
+        ReplyKeyboardRemove()
 
 # Function to call the ngrok API to assign a role
 def update_role_via_api(username, chat_id, new_role):
@@ -339,13 +339,30 @@ def view_all_orders():
                 message += f"- Order ID: {order['id']}\n"
                 message += f"  Product ID: {order['product_id']}\n"
                 message += f"  Quantity: {order['quantity']}\n"
-                message += f"  Status: {order['status']}\n\n"
+                message += f"  Order Date: {order['order_date']}\n\n"
             bot.send_message(message, parse_mode="Markdown")
         else:
             bot.send_message("❌ Failed to fetch orders.")
     except Exception as e:
         bot.send_message( f"⚠️ Error: {e}")
 
+def view_all_ordersByUser(message):
+    try:
+        id = message.chat.id
+        response = requests.get(f"{API_URL}/orders/{id}")
+        if response.status_code == 200:
+            orders = response.json()
+            message = "📋 **All Orders**:\n\n"
+            for order in orders:
+                message += f"- Order ID: {order['id']}\n"
+                message += f"  Product ID: {order['product_id']}\n"
+                message += f"  Quantity: {order['quantity']}\n"
+                message += f"  Order Date: {order['order_date']}\n\n"
+            bot.send_message(message, parse_mode="Markdown")
+        else:
+            bot.send_message("❌ Failed to fetch orders.")
+    except Exception as e:
+        bot.send_message( f"⚠️ Error: {e}")
 
 def place_order(chat_id, order_data):
     try:
@@ -391,6 +408,8 @@ def handle_callback(call):
         bot.register_next_step_handler(call.message, handle_add_product)
     elif call.data == "view_all_orders":
         view_all_orders()
+    elif call.data == "view_all_ordersByUser":
+        view_all_ordersByUser(chat_id)
     elif call.data == "delete_orders":
         delete_orders(chat_id)
     elif call.data == "place_order":
