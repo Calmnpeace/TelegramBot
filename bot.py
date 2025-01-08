@@ -366,17 +366,17 @@ def view_all_ordersByUser(message):
                 bot.send_message(message.chat.id, "No orders found.")
                 return
 
-            message = "📋 **All Orders**:\n\n"
+            message_text = "📋 **All Orders**:\n\n"
             for order in orders:
-                message += f"- Order ID: {order['id']}\n"
-                message += f"  Product ID: {order['product_id']}\n"
-                message += f"  Quantity: {order['quantity']}\n"
-                message += f"  Order Date: {order['order_date']}\n\n"
-            bot.send_message(message, parse_mode="Markdown")
+                message_text += f"- Order ID: {order['id']}\n"
+                message_text += f"  Product ID: {order['product_id']}\n"
+                message_text += f"  Quantity: {order['quantity']}\n"
+                message_text += f"  Order Date: {order['order_date']}\n\n"
+            bot.send_message(message,message_text, parse_mode="Markdown")
         else:
-            bot.send_message("❌ Failed to fetch orders.")
+            bot.send_message(message,"❌ Failed to fetch orders.")
     except Exception as e:
-        bot.send_message( f"⚠️ Error: {e}")
+        bot.send_message(message, f"⚠️ Error: {e}")
 
 def place_order(chat_id, order_data):
     try:
